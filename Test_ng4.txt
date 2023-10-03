@@ -1,0 +1,2 @@
+PlayerName,Level,Strikes,Number,MaxLevel
+Test,4,0,3,1

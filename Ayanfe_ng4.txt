@@ -1,0 +1,2 @@
+PlayerName,Level,Strikes,Number,MaxLevel
+Ayanfe,1,0,9,1
