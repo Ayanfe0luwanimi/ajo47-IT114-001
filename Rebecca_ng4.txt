@@ -1,4 +1,2 @@
 PlayerName,Level,Strikes,Number,MaxLevel
-
-Ayanfe,5,0,4,1
-Ayanfe,1,0,9,1
+Rebecca,2,0,15,1
