@@ -1,6 +1,5 @@
 package Project.common;
 
-
 /**
  * Created so we don't need to modify the base payload
  * to have an unused array 99% of the time

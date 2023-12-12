@@ -35,9 +35,6 @@ public class TimedEvent {
      * 
      * @param durationInSeconds
      */
-     //ucid: ajo47
-    //date: 9/12/2023
-    //the timer functionality
     public TimedEvent(int durationInSeconds) {
         timer = new Timer();
         secondsRemaining = durationInSeconds;

@@ -4,7 +4,6 @@ import Project.common.Player;
 
 public class ServerPlayer extends Player {
     private ServerThread client;
-    
 
     public void setClient(ServerThread client) {
         this.client = client;
@@ -18,8 +17,7 @@ public class ServerPlayer extends Player {
         setClient(client);
     }
 
-
-   
-    
-    
+    public boolean equals(ServerPlayer sp){
+        return client.getClientId() == sp.getClient().getClientId();
+    }
 }
