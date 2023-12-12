@@ -1,28 +1,35 @@
 package Project.server;
 
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import Project.common.CellData;
+import Project.common.CellPayload;
+import Project.common.Character;
+import Project.common.CharacterPayload;
 import Project.common.Constants;
 import Project.common.Payload;
 import Project.common.PayloadType;
 import Project.common.Phase;
+import Project.common.PositionPayload;
 import Project.common.RoomResultPayload;
 
 /**
  * A server-side representation of a single client
  */
 public class ServerThread extends Thread {
-    protected Socket client;
+    private Socket client;
     private String clientName;
     private boolean isRunning = false;
     private ObjectOutputStream out;// exposed here for send()
-    protected Room currentRoom;
+    // private Server server;// ref to our server so we can call methods on it
+    // more easily
+    private Room currentRoom;
     private static Logger logger = Logger.getLogger(ServerThread.class.getName());
     private long myClientId;
 
@@ -78,6 +85,37 @@ public class ServerThread extends Thread {
     }
 
     // send methods
+    public boolean sendGridReset(){
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.GRID_RESET);
+        return send(p);
+    }
+    public boolean sendCells(List<CellData> cells){
+        CellPayload cp = new CellPayload();
+        cp.setCellData(cells);
+        return send(cp);
+    }
+
+    public boolean sendGridDimensions(int x, int y){
+        PositionPayload pp = new PositionPayload();
+        pp.setCoord(x, y);
+        pp.setPayloadType(PayloadType.GRID); //override default payload type
+        return send(pp);
+    }
+    public boolean sendCurrentTurn(long clientId) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.TURN);
+        p.setClientId(clientId);
+        return send(p);
+    }
+
+    public boolean sendCharacter(long clientId, Character character) {
+        CharacterPayload cp = new CharacterPayload();
+        cp.setCharacter(character);
+        cp.setClientId(clientId);
+        return send(cp);
+    }
+
     public boolean sendPhaseSync(Phase phase) {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.PHASE);
@@ -108,6 +146,15 @@ public class ServerThread extends Thread {
         return send(payload);
     }
 
+    
+    public boolean handlenewquestion( String question) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.QUESTION);
+        p.setMessage(question);
+        return send(p);
+    }
+
+
     public boolean sendExistingClient(long clientId, String clientName) {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.SYNC_CLIENT);
@@ -130,9 +177,6 @@ public class ServerThread extends Thread {
     }
 
     public boolean sendMessage(long clientId, String message) {
-       // if(currentPhase==Phase.IN_PROGRESS){
-       //     message= ;
-
         Payload p = new Payload();
         p.setPayloadType(PayloadType.MESSAGE);
         p.setClientId(clientId);
@@ -145,6 +189,7 @@ public class ServerThread extends Thread {
         p.setPayloadType(isConnected ? PayloadType.CONNECT : PayloadType.DISCONNECT);
         p.setClientId(clientId);
         p.setClientName(who);
+        // p.setMessage(isConnected ? "connected" : "disconnected");
         p.setMessage(String.format("%s the room %s", (isConnected ? "Joined" : "Left"), currentRoom.getName()));
         return send(p);
     }
@@ -199,11 +244,6 @@ public class ServerThread extends Thread {
 
     void processPayload(Payload p) {
         switch (p.getPayloadType()) {
-            case ANSWER:
-            
-                ((GameRoom) currentRoom).receiveAnswerFromClient(this, p);
-             
-            break;
             case CONNECT:
                 setClientName(p.getClientName());
                 break;
@@ -218,13 +258,43 @@ public class ServerThread extends Thread {
                     logger.log(Level.INFO, "Migrating to lobby on message with null room");
                     Room.joinRoom(Constants.LOBBY, this);
                 }
-                break; 
+                break;
             case GET_ROOMS:
                 Room.getRooms(p.getMessage().trim(), this);
                 break;
             case CREATE_ROOM:
                 Room.createRoom(p.getMessage().trim(), this);
                 break;
+            case QUESTION:
+                try {
+                        GameRoom.getquestions(this);
+                    } catch (Exception e) {
+                        logger.severe(String.format("There was a problem during readyCheck %s", e.getMessage()));
+                        e.printStackTrace();
+                    }
+                break;
+            case RESTART:
+                try{
+                     ((GameRoom) currentRoom).sendRestart();
+               
+                } catch (Exception e) {
+                    logger.severe(String.format("There was a problem during readyCheck %s", e.getMessage()));
+                    e.printStackTrace();
+
+                    }
+                  break;
+            
+             case SUBMITANSWER:
+                     try{
+                     ((GameRoom) currentRoom).score(this, p.getMessage());
+               
+                } catch (Exception e) {
+                    logger.severe(String.format("There was a problem during readyCheck %s", e.getMessage()));
+                    e.printStackTrace();
+
+                    }
+                  break;
+            
             case JOIN_ROOM:
                 Room.joinRoom(p.getMessage().trim(), this);
                 break;
@@ -236,6 +306,24 @@ public class ServerThread extends Thread {
                     e.printStackTrace();
                 }
                 break;
+            case CHARACTER:
+                try {
+                    CharacterPayload cp = (CharacterPayload) p;
+                    // Here I'm making the assumption if the passed Character is null, it's likely a
+                    // create request,
+                    // if the passed character is not null, then some of the properties will be used
+                    // for loading
+                    if (cp.getCharacter() == null) {
+                        ((GameRoom) currentRoom).createCharacter(this, cp.getCharacterType());
+                    } else {
+                        ((GameRoom) currentRoom).loadCharacter(this, cp.getCharacter());
+                    }
+                } catch (Exception e) {
+                    logger.severe(String.format("There was a problem during character handling %s", e.getMessage()));
+                    e.printStackTrace();
+                }
+                break;
+            
             default:
                 break;
 
@@ -251,9 +339,5 @@ public class ServerThread extends Thread {
             logger.info("Client already closed");
         }
         logger.info("Thread cleanup() complete");
-    }
-
-    public ServerThread getClientThread() {
-        return null;
     }
 }

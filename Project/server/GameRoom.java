@@ -1,81 +1,123 @@
 package Project.server;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
-import Project.client.Client;
+import Project.common.CellData;
+import Project.common.Character;
 import Project.common.Constants;
-import Project.common.Payload;
+import Project.common.Grid;
 import Project.common.Phase;
 import Project.common.TimedEvent;
-import Project.common.QuestionDetails;
+import Project.common.Utils;
+import Project.common.Character.ActionType;
+import Project.common.Character.CharacterType;
+import Project.common.exceptions.CharacterAlreadyAssignedException;
+import Project.common.exceptions.InvalidMoveException;
+import Project.server.CharacterFactory.ControllerType;
+
 public class GameRoom extends Room {
     Phase currentPhase = Phase.READY;
     private static Logger logger = Logger.getLogger(GameRoom.class.getName());
     private TimedEvent readyTimer = null;
-    private ConcurrentHashMap<ServerPlayer, Integer> guessesPerPlayer = new ConcurrentHashMap<>();
     private ConcurrentHashMap<Long, ServerPlayer> players = new ConcurrentHashMap<Long, ServerPlayer>();
-    private List<QuestionDetails> questions;
-    private List<List<String>> potentialAnswers;
-    private List<String> correctAnswers; // New list for correct answers
-    boolean gameover=false;
-    private TimedEvent sessionTimer;
-    private QuestionDetails currentDisplayedQuestion;
-    private Map<ServerPlayer, Integer> timeOfGuess = new ConcurrentHashMap<>();
-    private String currentQuestionAnswer; // Variable to store the current question's answer
+    private Grid grid = new Grid();
+    private Character currentTurnCharacter = null;
+    Random rand = new Random();
+    private List<Character> turnOrder = new ArrayList<Character>();
+    List<ClientScore> scores = new ArrayList<>();
 
-
-    private int totalGuesses = 0;
-    private  int MAX_GUESSES = 1;
-    String randquestion;
-
-    private static ScheduledExecutorService executor;
-    private static int remainingTime = 30;
-
-    public void startCountdown() {
-        executor = Executors.newScheduledThreadPool(1);
-        executor.scheduleAtFixedRate(() -> {
-            if (remainingTime > 0) {       
-                remainingTime--;
-            } else {
-                stopCountdown();
-            }
-        }, 0, 1, TimeUnit.SECONDS);
-    }
-
-
-    public static void stopCountdown() {
-        if (executor != null) {
-            executor.shutdownNow();
-            remainingTime = 0;
-        }
-    }
-
-    public static int getRemainingTime() {
-        return remainingTime;
-    }
-
-
-
+    private ScoreTimer scoreTimerInstance; 
 
     public GameRoom(String name) {
         super(name);
+        // TODO Auto-generated constructor stub
     }
 
-    public boolean validateAnswer(String correctAnswer, String userAnswer) {
-        return userAnswer.equalsIgnoreCase(correctAnswer);
+    /**
+     * Attempts to lookup and load a character
+     * 
+     * @param client
+     * @param character expected to contain search/lookup criteria, not an actual
+     *                  full character reference
+     */
+    protected void loadCharacter(ServerThread client, Character charData) {
+        // for now using character code to fetch
+        String characterCode = charData.getCode();
+        String[] parts = characterCode.split("-");
+        if (parts.length >= 2) {
+            String position = parts[0];
+            String code = parts[1];
+            Consumer<Character> callback = character -> {
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Character created: ").append(character.getName()).append("\n");
+                    sb.append("Character level: ").append(character.getLevel()).append("\n");
+                    sb.append("Character type: ").append(character.getType()).append("\n");
+                    sb.append("Character action type: ").append(character.getActionType()).append("\n");
+                    sb.append("Character stats: ").append("\n");
+                    sb.append("Attack: ").append(character.getAttack()).append("\n");
+                    sb.append("Vitality: ").append(character.getVitality()).append("\n");
+                    sb.append("Defense: ").append(character.getDefense()).append("\n");
+                    sb.append("Will: ").append(character.getWill()).append("\n");
+                    sb.append("Luck: ").append(character.getLuck()).append("\n");
+                    sb.append("Progression Rate: ").append(character.getProgressionRate()).append("\n");
+                    sb.append("Range: ").append(character.getRange()).append("\n");
+
+                    System.out.println(sb.toString());
+                    assignCharacter(client, character);
+                    // client.sendCharacter(client.getClientId(), character);
+                    syncCharacter(client.getClientId(), character);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            };
+            CharacterFactory.loadCharacter(position, code, callback);
+        }
+    }
+
+    /**
+     * Attempts to create a random character of the given type (TANK, DAMAGE,
+     * SUPPORT)
+     * 
+     * @param client
+     * @param ct
+     */
+    protected void createCharacter(ServerThread client, CharacterType ct) {
+        Consumer<Character> callback = character -> {
+            try {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Character created: ").append(character.getName()).append("\n");
+                sb.append("Character level: ").append(character.getLevel()).append("\n");
+                sb.append("Character type: ").append(character.getType()).append("\n");
+                sb.append("Character action type: ").append(character.getActionType()).append("\n");
+                sb.append("Character stats: ").append("\n");
+                sb.append("Attack: ").append(character.getAttack()).append("\n");
+                sb.append("Vitality: ").append(character.getVitality()).append("\n");
+                sb.append("Defense: ").append(character.getDefense()).append("\n");
+                sb.append("Will: ").append(character.getWill()).append("\n");
+                sb.append("Luck: ").append(character.getLuck()).append("\n");
+                sb.append("Progression Rate: ").append(character.getProgressionRate()).append("\n");
+                sb.append("Range: ").append(character.getRange()).append("\n");
+
+                System.out.println(sb.toString());
+                assignCharacter(client, character);
+                // client.sendCharacter(client.getClientId(), character);
+                syncCharacter(client.getClientId(), character);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
+        CharacterFactory.createCharacter(ControllerType.PLAYER, ct, 1, Utils.randomEnum(ActionType.class), callback);
     }
 
     @Override
@@ -84,13 +126,98 @@ public class GameRoom extends Room {
         players.computeIfAbsent(client.getClientId(), id -> {
             ServerPlayer player = new ServerPlayer(client);
             super.addClient(client);
-            logger.info(String.format("Total clients %s", clients.size()));
+            syncGameState(client);
+            logger.info(String.format("Total clients %s", clients.size()));// change visibility to protected
             return player;
         });
     }
 
-    protected void trackmessages(){
+    public void score(ServerThread client, String answer) {
+        int remainingTime = scoreTimerInstance.getRemainingTime();
+        long clientID = client.getClientId();
+        //ucid: ajo47
+        //date: 12/12/2023
+        
+        // Check if the clientID already exists in the scores list
+        boolean alreadyGuessed = false;
+        for (ClientScore cs : scores) {
+            if (cs.getClientId() == clientID) {
+                alreadyGuessed = true;
+                break;
+            }
+        }
+    
+        if (alreadyGuessed) {
+            client.sendMessage(clientID, "Sorry, you already made a guess. Please wait for the next round.");
+        } else {
+            boolean result = compareParts(answer);
+            if (result) {
+                scores.add(new ClientScore(clientID, remainingTime));
+            } else {
+                scores.add(new ClientScore(clientID, 0));
+            }
+        }
+    
+        for (ClientScore cs : scores) {
+            client.sendMessage(clientID, "Client ID: " + cs.getClientId() + ", Score: " + cs.getScore());
+        }
 
+        // Check if all players have made their guesses
+        if (scores.size() == players.size()) {
+
+                sendRestart();
+                readyTimer = null;
+                updatePhase(Phase.PREPARING);
+            
+        }
+    }
+    
+
+    private static boolean compareParts(String input) {
+        // Split the input string by comma
+        String[] parts = input.split(",");
+        
+        // Check if the parts exist and are of equal length
+        if (parts.length == 2) {
+            // Trim and ignore case when comparing
+            return parts[0].trim().equalsIgnoreCase(parts[1].trim());
+        }
+        return false; // Return false if the string does not have two parts separated by a comma
+    }
+
+
+    private void syncGameState(ServerThread incomingClient) {
+        // single data
+        // sync grid
+        if (grid.hasCells()) {
+            incomingClient.sendGridDimensions(grid.getRows(), grid.getColumns());
+        } else {
+            incomingClient.sendGridReset();
+        }
+        if (currentTurnCharacter != null) {
+            incomingClient
+                    .sendCurrentTurn(((ServerPlayer) currentTurnCharacter.getController()).getClient().getClientId());
+        }
+        incomingClient.sendPhaseSync(currentPhase);
+        Iterator<ServerPlayer> iter = players.values().stream().iterator();
+        while (iter.hasNext()) {
+            ServerPlayer client = iter.next();
+            if (client.getClient().getClientId() == incomingClient.getClientId()) {
+                continue;
+            }
+            Character c = client.getCharacter();
+            boolean success = false;
+            if (c != null) {
+                success = incomingClient.sendCharacter(client.getClient().getClientId(), c);
+            }
+            if (client.isReady()) {
+                success = incomingClient.sendReadyStatus(client.getClient().getClientId());
+            }
+
+            if (!success) {
+                break;
+            }
+        }
     }
 
     protected void setReady(ServerThread client) {
@@ -106,128 +233,22 @@ public class GameRoom extends Room {
                 readyCheck(true);
             });
         }
-        players.values().stream().filter(p -> p.getClient().getClientId() == client.getClientId()).findFirst()
-                .ifPresent(p -> {
-                    p.setReady(true);
-                    logger.info(String.format("Marked player %s[%s] as ready", p.getClient().getClientName(), p
-                            .getClient().getClientId()));
-                    syncReadyStatus(p.getClient().getClientId());
-                });
+        // Hashmaps allow fast lookup by keys
+        if (players.containsKey(client.getClientId())) {
+            ServerPlayer sp = players.get(client.getClientId());
+            sp.setReady(true);
+            logger.info(String.format("Marked player %s[%s] as ready", sp.getClient().getClientName(), sp
+                    .getClient().getClientId()));
+            syncReadyStatus(sp.getClient().getClientId());
+        }
         readyCheck(false);
-    
-        // Reset session timer upon starting a new session
-        if (sessionTimer != null) {
-            sessionTimer.cancel();
-            sessionTimer = null;
-        }
     }
-    
-    
-
-    public void receiveAnswerFromClient(ServerThread client, Payload answer) {
-        String newAnswer = answer.getMessage();
-    
-        // Generating a unique ID based on player's name
-        ServerPlayer currentPlayer = players.get(new ServerPlayer(client).getClient().getClientId());
-    
-        if (currentPlayer != null) {
-            if (!hasPlayerMadeGuess(currentPlayer)) {
-                int remainingTime = timedEvent.getRemainingTime();
-                timeOfGuess.put(currentPlayer, remainingTime);
-    
-                if (!hasPlayerReachedMaxGuesses(currentPlayer)) {
-                    String currentQuestion = randquestion;
-    
-                    if (currentQuestion != null) {
-                        String correctAnswer = currentQuestionAnswer;
-                            //ucid: ajo47
-                            //date: 9/12/2023
-                            /*marks are awarded based on the minutes remaining for the game to end.
-                            incorrect responses are however awarded zero. This informstion is stored in 
-                            the timeofguess list object
-                            */
-    
-                        if (validateAnswer(correctAnswer, newAnswer)) {
-                            sendMessage(null, "Successfully submited your choice,");
-                            timeOfGuess.put(currentPlayer, getRemainingTime());
-                        } else {
-                            sendMessage(null, "Successfully submited your choice");
-                            timeOfGuess.put(currentPlayer, 0);
-                        }
-                        incrementGuessCount(currentPlayer);
-                        checkGameOver();
-                    } else {
-                        sendMessage(null, "No question found");
-                    }
-                } else {
-                    sendMessage(null, "You have reached the maximum number of guesses.");
-                }
-            } else {
-                sendMessage(null, "You have already made a guess.");
-            }
-    
-            // Check if all players have made a guess after the current player's turn
-            if (allPlayersMadeGuess()) {
-                resetSession();
-            }
-        }
-    }
-    /*ucid: ajo47
-    date: 9/12/2023
-    checks if all players have made a guess/submission. If this method returns true, the resetsession
-    method is invoked
-    */
-
-    private boolean allPlayersMadeGuess() {
-        return guessesPerPlayer.size() == players.size();
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    private void incrementGuessCount(ServerPlayer currentPlayer) {
-        guessesPerPlayer.put(currentPlayer, guessesPerPlayer.getOrDefault(currentPlayer, 0) + 1);
-    }
-
-    //ucid: ajo47
-    //date: 9/12/2023
-
-    private boolean hasPlayerMadeGuess(ServerPlayer currentPlayer) {
-        return timeOfGuess.containsKey(currentPlayer);
-    }
-    //this method checks that a player hasnt made a guess recrded in the timeofguess object
-    
-
-    private boolean hasPlayerReachedMaxGuesses(ServerPlayer currentPlayer) {
-        return guessesPerPlayer.getOrDefault(currentPlayer, 0) > MAX_GUESSES;
-    }
-    //returns yes or no dependidng on whether the player has reached maximum number of guesses, ie 1
-
-    private void checkGameOver() {
-    // ucid: ajo47
-    //date: 9/12/2023
-        int totalPlayers = players.size(); // Get the total number of players
-        if (totalGuesses > totalPlayers * MAX_GUESSES) {
-            gameover = true;
-            resetSession();
-            stopCountdown();
-        }
-    }
-
-    
-    
 
     private void readyCheck(boolean timerExpired) {
         if (currentPhase != Phase.READY) {
             return;
         }
-    // two examples for the same result
+        // two examples for the same result
         // int numReady = players.values().stream().mapToInt((p) -> p.isReady() ? 1 :
         // 0).sum();
         long numReady = players.values().stream().filter(ServerPlayer::isReady).count();
@@ -237,7 +258,6 @@ public class GameRoom extends Room {
                 sendMessage(null, "Ready Timer expired, starting session");
                 start();
             } else if (numReady >= players.size()) {
-                
                 sendMessage(null, "Everyone in the room marked themselves ready, starting session");
                 if (readyTimer != null) {
                     readyTimer.cancel();
@@ -254,111 +274,125 @@ public class GameRoom extends Room {
         }
     }
 
-
-
-    // Get lines from a file
-    private List<String> getFileLines(String filePath) throws IOException {
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                lines.add(line);
-            }
-        }
-        return lines;
-    }
-
-    // Get a random line from a list of strings
-    private String getRandomLine(List<String> lines) {
-        Random random = new Random();
-        int index = random.nextInt(lines.size());
-        return lines.get(index);
-    }
-
-    // ucid: ajo47
-    //date: 9/12/2023
-    private String getRandomQuestionAndAnswer(String filePath) {
-        try {
-            List<String> lines = getFileLines(filePath);
-            String randomLine = getRandomLine(lines);
-            List<String> randomLineAsList = Arrays.asList(randomLine.split(";"));
-            if (randomLineAsList.size() >= 4) {
-                String question = "Category: "+randomLineAsList.get(0).trim()+", Question: "+randomLineAsList.get(1).trim()+", Options: "+randomLineAsList.get(2).trim();
-                String correctAnswer = randomLineAsList.get(3).trim();
-                setCurrentQuestionAnswer(correctAnswer);
-                randquestion=question;
-                return question;
-            }
-        } catch (IOException e) {
-            logger.severe("Error while getting a random question: " + e.getMessage());
-        }
-        return "No question found";
-    }
-
-    // Set the current question's answer
-    private void setCurrentQuestionAnswer(String answer) {
-        this.currentQuestionAnswer = answer;
-    }
-
-    // Show a random question and pass to the user
-    // ucid: ajo47
-    //date: 9/12/2023
-    private String showQuestion(String filePath) {
-        return getRandomQuestionAndAnswer(filePath);
-    }
-
-    // ucid: ajo47
-    //date: 9/12/2023
-    //the start method is called and runs for 30 seconds, after which the resetsession method is called
-    //the time is enforced by the timedevent logic
-
+    //ucid: ajo47
+    //date: 12/12/2023
     private void start() {
-        String filepath="questions.txt";
-        updatePhase(Phase.IN_PROGRESS);
-        sendMessage(null, "Session started");
-        sessionTimer = new TimedEvent(30, () -> resetSession());
-        sendMessage(null, showQuestion(filepath));
-        startCountdown();
-        
-       
-        
+        updatePhase(Phase.SELECTION);
+        // TODO example
+        sendMessage(
+            null,
+                "Session started: Please click the right answer to submit");
+        new TimedEvent(30, () -> optionspanel());
+        scoreTimerInstance = new ScoreTimer(30);
     }
 
+    private void optionspanel() {
+        updatePhase(Phase.PREPARING);
+        nextTurn();
+    }
+
+    public synchronized void sendRestart(){
+        scores.clear();
+        resetSession();
+        
+        updatePhase(Phase.SELECTION);
+        start();
+    }
+
+    public static void getquestions(ServerThread threadd){
+       String question=getquestionsandanswer();
+        threadd.handlenewquestion(question);
+    }
+
+
+        
+    private static String getquestionsandanswer() {
+        String filePath = "questions.txt";
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(filePath));
+            return lines.stream().collect(Collectors.joining("-"));
+        } catch (IOException e) {
+            e.printStackTrace(); // Handle the IOException appropriately
+        }
+        return ""; // Return an empty string if reading fails
+    }
+    
+
+
+
+    
+
+
+
+    
+
+    
+
+    // start handle next turn
+    private void nextTurn() {
+        updatePhase(Phase.TURN);
+    }
+
+
+
+    private void syncCells(List<CellData> cells) {
+        Iterator<ServerPlayer> iter = players.values().stream().iterator();
+        while (iter.hasNext()) {
+            ServerPlayer client = iter.next();
+            boolean success = client.getClient().sendCells(cells);
+            if (!success) {
+                handleDisconnect(client);
+            }
+        }
+    }
+
+    // end handle next turn
+    private void cancelReadyTimer() {
+        if (readyTimer != null) {
+            readyTimer.cancel();
+            readyTimer = null;
+        }
+    }
+
+   
+    private void endDungeon() {
+        // TODO give experience / rewards
+
+        Iterator<Character> iter = turnOrder.iterator();
+        while (iter.hasNext()) {
+            Character c = iter.next();
+            if (c.isInCell()) {
+                grid.removeCharacterFromCell(c.getCurrentCell().getX(), c.getCurrentCell().getY(), c);
+            }
+        }
+        grid.reset();
+        syncGridReset();
+        resetSession();// TODO allow the session to continue a new dungeon or quit rather than just
+                       // resetting
+    }
+
+    private synchronized void syncGridReset() {
+        Iterator<ServerPlayer> iter = players.values().stream().iterator();
+        while (iter.hasNext()) {
+            ServerPlayer client = iter.next();
+            boolean success = client.getClient().sendGridReset();
+            if (!success) {
+                handleDisconnect(client);
+            }
+        }
+    }
 
     private synchronized void resetSession() {
-        players.values().forEach(p -> p.setReady(false));
+        players.values().stream().forEach(p -> p.setReady(false));
         updatePhase(Phase.READY);
-        // Output times of guesses
-        StringBuilder finalMessage = new StringBuilder("Rankings:\n");
-        for (Map.Entry<ServerPlayer, Integer> entry : timeOfGuess.entrySet()) {
-            ServerPlayer player = entry.getKey();
-            int timeOfGuess = entry.getValue();
-            String playerName = player.getClient().getClientName();
-            String playerInfo =   playerName + ": Score " + timeOfGuess + "\n";
-            finalMessage.append(playerInfo);
-        }
-          /*ucid: ajo47
-        date: 9/12/2023
-        Making of a string object of the scores and mapping them to player names
-        */
-        sendMessage(null,  finalMessage.toString() + "\nSession ended, please initiate a ready check to begin a new one");
-        guessesPerPlayer.clear();
-        timeOfGuess.clear();
-        updatePhase(currentPhase);
-        
-        if (sessionTimer != null) {
-            sessionTimer.cancel();
-            sessionTimer = null;
-        }
+        sendMessage(null, "Session ended, please intiate ready check to begin a new one");
     }
-    
-    
+
     private void updatePhase(Phase phase) {
         if (currentPhase == phase) {
             return;
         }
         currentPhase = phase;
-        Client.Instance.setCurrentPhase(phase);
         // NOTE: since the collection can yield a removal during iteration, an iterator
         // is better than relying on forEach
         Iterator<ServerPlayer> iter = players.values().stream().iterator();
@@ -374,7 +408,7 @@ public class GameRoom extends Room {
     protected void handleDisconnect(ServerPlayer player) {
         if (players.containsKey(player.getClient().getClientId())) {
             players.remove(player.getClient().getClientId());
-            super.handleDisconnect(null, player.getClient());
+            super.handleDisconnect(null, player.getClient()); // change visibility to protected
             logger.info(String.format("Total clients %s", clients.size()));
             sendMessage(null, player.getClient().getClientName() + " disconnected");
             if (players.isEmpty()) {
@@ -394,4 +428,45 @@ public class GameRoom extends Room {
         }
     }
 
+    // handle character
+    private void assignCharacter(ServerPlayer player, Character character) throws Exception {
+        if (player.hasCharacter()) {
+            throw new CharacterAlreadyAssignedException("Character already assigned");
+        }
+        player.assignCharacter(character);
+    }
+
+    private void assignCharacter(ServerThread client, Character character) {
+        try {
+            ServerPlayer sp = players.get(client.getClientId());
+            assignCharacter(sp, character);
+        } catch (CharacterAlreadyAssignedException ce) {
+            if (currentPhase != Phase.SELECTION) {
+                client.sendMessage(Constants.DEFAULT_CLIENT_ID, "You already have a character assigned");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void syncCharacter(long clientId, Character character) {
+        Iterator<ServerPlayer> iter = players.values().stream().iterator();
+        while (iter.hasNext()) {
+            ServerPlayer client = iter.next();
+            boolean success = client.getClient().sendCharacter(clientId, character);
+            if (!success) {
+                handleDisconnect(client);
+            }
+        }
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        players.clear();
+        players = null;
+        currentTurnCharacter = null;
+        // turnOrder.clear(); // this is actually an immutable array so can't clear it
+        turnOrder = null;
+    }
 }
