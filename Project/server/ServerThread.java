@@ -109,6 +109,14 @@ public class ServerThread extends Thread {
         return send(p);
     }
 
+    public boolean repopulate(){
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.REPOPULATE);
+       
+        return send(p);
+
+    }
+
     public boolean sendCharacter(long clientId, Character character) {
         CharacterPayload cp = new CharacterPayload();
         cp.setCharacter(character);

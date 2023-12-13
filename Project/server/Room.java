@@ -200,6 +200,8 @@ public class Room implements AutoCloseable {
         }
     }
 
+
+
     protected synchronized void sendConnectionStatus(ServerThread sender, boolean isConnected) {
         Iterator<ServerThread> iter = clients.iterator();
         while (iter.hasNext()) {

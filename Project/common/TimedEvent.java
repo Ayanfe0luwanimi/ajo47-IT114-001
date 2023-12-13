@@ -16,6 +16,8 @@ public class TimedEvent {
     private Runnable expireCallback = null;
     private Consumer<Integer> tickCallback = null;
     final private Timer timer;
+    private boolean running;
+    
 
     /**
      * Create a TimedEvent to trigger the passed in callback after a set duration
@@ -26,6 +28,7 @@ public class TimedEvent {
     public TimedEvent(int durationInSeconds, Runnable callback) {
         this(durationInSeconds);
         this.expireCallback = callback;
+        
     }
 
     /**
@@ -35,6 +38,14 @@ public class TimedEvent {
      * 
      * @param durationInSeconds
      */
+
+     public void stop() {
+        running = false;
+        timer.cancel();
+        expireCallback = null;
+        tickCallback = null;
+    }
+
     public TimedEvent(int durationInSeconds) {
         timer = new Timer();
         secondsRemaining = durationInSeconds;
@@ -93,6 +104,8 @@ public class TimedEvent {
     public int getRemainingTime() {
         return secondsRemaining;
     }
+
+    
 
     /**
      * This is just for testing/demo
