@@ -16,6 +16,7 @@ import java.util.Random;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
@@ -35,6 +36,7 @@ import Project.common.Character.CharacterType;
 public class GamePanel extends JPanel implements IGameEvents, IGameControls {
     private CellPanel[][] cells;
     private JPanel gridPanel;
+    private ICardControls controls; // Declare the controls field
     private CardLayout cardLayout;
     String curentquestion;
     private DrawingPanel drawingPanel;
@@ -52,11 +54,13 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
     JButton restart;
     JLabel timeLabel = new JLabel("");
     TimedEvent currentTimer;
+    String Status;
 
     public GamePanel(ICardControls controls) {
         super(new CardLayout());
         cardLayout = (CardLayout) this.getLayout();
         this.setName(Card.GAME_SCREEN.name());
+        this.controls = controls; 
         Client.INSTANCE.addCallback(this);
         // this is purely for debugging
         this.addComponentListener(new ComponentAdapter() {
@@ -91,12 +95,39 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
                 e.printStackTrace();
             }
         });
-        
 
-        
+        JButton spectator=new JButton();
+        spectator.setText("Spectator");
+        spectator.addActionListener( l -> {
+                Status="Spectator";
+                
+                try {
+                    Client.INSTANCE.sendReadyStatus();
+                    Client.INSTANCE.getRandomQuestionAndAnswer();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        );
 
+        JButton away= new JButton();
+        away.setText("Away");
+        away.addActionListener((event) -> {
+            try {
+                Client.INSTANCE.sendawaysignal();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            JOptionPane.showMessageDialog(this, "You marked yourself away for the game", "Info", JOptionPane.INFORMATION_MESSAGE);
+            controls.show(Card.ROOMS.name());
+        });
 
-        
+        readyPanel.add(away);
+
+        readyPanel.add(spectator);
+ 
         readyPanel.add(readyButton);
         this.add(readyPanel);
 
@@ -107,8 +138,7 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         JPanel characterOptions = new JPanel(new FlowLayout(FlowLayout.CENTER));
         characterOptions.setLayout(new GridLayout(0, 2,20,20)); // Set the layout to a single column
 
-        JButton question = new JButton();
-        question.setText("RELOAD");
+        JLabel question = new JLabel();
         timeLabel=new JLabel();
         characterOptions.add(timeLabel);
 
@@ -136,46 +166,50 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         JLabel answerOptionsLabel = new JLabel("Answer options:");
         JLabel blank=new JLabel();
         answerOptionsField1.addActionListener(l -> {
-            try {
-                Client.INSTANCE.submitANswer(answerOptionsField1.getText()+","+newanswer);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            if(Status=="Spectator"){
+                JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
+            }
+            else{
+                try {
+                    Client.INSTANCE.submitANswer(answerOptionsField1.getText()+","+newanswer);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
    
 
         answerOptionsField2.addActionListener(l -> {
-            try {
-                Client.INSTANCE.submitANswer(answerOptionsField2.getText()+","+newanswer);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            if(Status=="Spectator"){
+                JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
+            }
+            else{
+                try {
+                    Client.INSTANCE.submitANswer(answerOptionsField2.getText()+","+newanswer);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
         answerOptionsField3.addActionListener(l -> {
-            try {
-                Client.INSTANCE.submitANswer(answerOptionsField3.getText()+","+newanswer);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            if(Status=="Spectator"){
+                JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
+            }
+            else{
+                try {
+                    Client.INSTANCE.submitANswer(answerOptionsField3.getText()+","+newanswer);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
         JLabel blank2=new JLabel();
         JLabel blank3=new JLabel();
         JLabel textField=new JLabel();
- 
-        question.addActionListener(e -> {
-            try {
-                Client.INSTANCE.getRandomQuestionAndAnswer();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
-            }
-            
-  
-            updateUIComponents(); 
-        });
+
 
     JLabel scoresLabel = new JLabel("Scores:");
     characterOptions.add(scoresLabel);

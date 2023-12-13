@@ -265,11 +265,24 @@ public class ServerThread extends Thread {
             case CREATE_ROOM:
                 Room.createRoom(p.getMessage().trim(), this);
                 break;
+            case NEWQUESTION:
+                GameRoom.submitquestion(p.getMessage().trim(),this);
+                break;
+            case AWAY:
+                ((GameRoom) currentRoom).sendawaymessage(this);
             case QUESTION:
                 try {
                         GameRoom.getquestions(this);
                     } catch (Exception e) {
                         logger.severe(String.format("There was a problem during readyCheck %s", e.getMessage()));
+                        e.printStackTrace();
+                    }
+                break;
+            case CATEGORY:
+                try {
+                        GameRoom.setcategory(p.getMessage(), this);
+                    } catch (Exception e) {
+                        logger.severe(String.format("There was a problem updating your preffered category %s", e.getMessage()));
                         e.printStackTrace();
                     }
                 break;

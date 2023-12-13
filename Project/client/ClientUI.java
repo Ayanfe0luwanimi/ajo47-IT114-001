@@ -16,9 +16,11 @@ import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import Project.client.views.CategoryPanel;
 import Project.client.views.ChatGamePanel;
 import Project.client.views.ConnectionPanel;
 import Project.client.views.Menu;
+import Project.client.views.QuestionPanel;
 import Project.client.views.RoomsPanel;
 import Project.client.views.UserInputPanel;
 import Project.common.Constants;
@@ -41,6 +43,8 @@ public class ClientUI extends JFrame implements IClientEvents, ICardControls {
     private UserInputPanel inputPanel;
     private RoomsPanel roomsPanel;
     private ChatGamePanel chatGamePanel;
+    private QuestionPanel questionPanel;
+    private CategoryPanel categoryPanel;
 
     public ClientUI(String title) {
         super(title);// call the parent's constructor
@@ -59,6 +63,8 @@ public class ClientUI extends JFrame implements IClientEvents, ICardControls {
         csPanel = new ConnectionPanel(this);
         inputPanel = new UserInputPanel(this);
         chatGamePanel = new ChatGamePanel(this);
+        questionPanel= new QuestionPanel(this);
+        categoryPanel=new CategoryPanel(this);
 
         roomsPanel = new RoomsPanel(this);
 
@@ -85,6 +91,14 @@ public class ClientUI extends JFrame implements IClientEvents, ICardControls {
         // lastly
         pack();// tells the window to resize itself and do the layout management
         setVisible(true);
+
+        questionPanel = new QuestionPanel(this);
+
+        // Add the QuestionPanel instance to the card layout
+        addPanel(Card.QUESTION.name(), questionPanel); 
+
+        categoryPanel=new CategoryPanel(this);
+        addPanel(Card.CATEGORY.name(), categoryPanel);
     }
 
     private void findAndSetCurrentPanel() {

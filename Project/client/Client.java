@@ -88,6 +88,13 @@ public enum Client {
         out.writeObject(p);
     }
 
+    public void savequestion(String quizformat) throws IOException{
+        Payload p=new Payload();
+        p.setPayloadType(PayloadType.NEWQUESTION);
+        p.setMessage(quizformat);
+        out.writeObject(p);
+    }
+
      public void getRandomQuestionAndAnswer() throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.QUESTION);
@@ -142,10 +149,23 @@ public enum Client {
         out.writeObject(p);
     }
 
+    public void SubmitCategory(String ChosenCategory) throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.CATEGORY);
+        p.setMessage(ChosenCategory);
+        out.writeObject(p);
+    }
+
     public void sendListRooms(String query) throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.GET_ROOMS);
         p.setMessage(query);
+        out.writeObject(p);
+    }
+
+      public void sendawaysignal() throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.AWAY);
         out.writeObject(p);
     }
 
