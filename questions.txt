@@ -1,4 +1,5 @@
-Geography;What is the capital of France?;Paris|London|Rome;Paris
-Philosophy;Who painted the Mona Lisa?;Leonardo da Vinci|Pablo Picasso|Vincent van Gogh;Leonardo da Vinci
-Biology;What is the largest mammal?;Elephant|Blue Whale|Giraffe;Blue Whale
-Science;Which planet is known as the Red Planet?;Mars|Jupiter|Venus;Mars
+Category 2;What is the capital of France?;Paris|London|Rome;Paris
+Category 1;Who painted the Mona Lisa?;Leonardo da Vinci|Pablo Picasso|Vincent van Gogh;Leonardo da Vinci
+Category 2;What is the largest mammal?;Elephant|Blue Whale|Giraffe;Blue Whale
+Category 1;Which planet is known as the Red Planet?;Mars|Jupiter|Venus;Mars
+Category 1;Which of the following is a planet?;China|Mars|Texas;Mars

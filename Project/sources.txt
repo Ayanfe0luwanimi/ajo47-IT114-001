@@ -9,6 +9,7 @@
 ./client/IGameControls.java
 ./client/IGameEvents.java
 ./client/TestUI.java
+./client/views/CategoryPanel.java
 ./client/views/CellPanel.java
 ./client/views/ChatGamePanel.java
 ./client/views/ChatPanel.java
@@ -16,6 +17,7 @@
 ./client/views/DrawingPanel.java
 ./client/views/GamePanel.java
 ./client/views/Menu.java
+./client/views/QuestionPanel.java
 ./client/views/RoomListItem.java
 ./client/views/RoomsPanel.java
 ./client/views/UserInputPanel.java

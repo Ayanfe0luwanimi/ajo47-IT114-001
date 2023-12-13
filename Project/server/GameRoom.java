@@ -1,5 +1,7 @@
 package Project.server;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -35,12 +37,18 @@ public class GameRoom extends Room {
     Random rand = new Random();
     private List<Character> turnOrder = new ArrayList<Character>();
     List<ClientScore> scores = new ArrayList<>();
+    static String preferedcategory;
 
     private ScoreTimer scoreTimerInstance; 
 
     public GameRoom(String name) {
         super(name);
         // TODO Auto-generated constructor stub
+    }
+
+    public static void setcategory(String category, ServerThread client){
+        preferedcategory = category;
+        client.sendMessage(client.getClientId(), "The new preffered ctegory is "+category);
     }
 
     /**
@@ -92,6 +100,22 @@ public class GameRoom extends Room {
      * @param client
      * @param ct
      */
+
+
+    public static void submitquestion(String incomingquestion, ServerThread client){
+        String fileName = "questions.txt";
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName,true))) {
+            // Write the string to the file
+            writer.write(incomingquestion);
+            writer.newLine();
+
+            client.sendMessage(client.getClientId(),"Text has been saved to " + fileName);
+        } catch (IOException e) {
+            client.sendMessage(client.getClientId(),"Error writing to the file: " + e.getMessage());
+        }
+
+    }
+
     protected void createCharacter(ServerThread client, CharacterType ct) {
         Consumer<Character> callback = character -> {
             try {
@@ -244,6 +268,10 @@ public class GameRoom extends Room {
         readyCheck(false);
     }
 
+    public void sendawaymessage(ServerThread client){
+        sendMessage(null, "Player "+client.getClientName()+ " marked themself away for this round");
+    }
+
     private void readyCheck(boolean timerExpired) {
         if (currentPhase != Phase.READY) {
             return;
@@ -310,12 +338,26 @@ public class GameRoom extends Room {
         String filePath = "questions.txt";
         try {
             List<String> lines = Files.readAllLines(Paths.get(filePath));
-            return lines.stream().collect(Collectors.joining("-"));
+    
+            // Check if preferedcategory is null
+            if (preferedcategory == null) {
+                // Combine all lines into a single string
+                return String.join("-", lines);
+            } else {
+                // Filter lines that contain the specified string
+                List<String> filteredLines = lines.stream()
+                        .filter(line -> line.contains(preferedcategory))
+                        .collect(Collectors.toList());
+    
+                // Join the filtered lines into a single string
+                return String.join("-", filteredLines);
+            }
         } catch (IOException e) {
             e.printStackTrace(); // Handle the IOException appropriately
         }
-        return ""; // Return an empty string if reading fails
+        return ""; // Return an empty string if reading fails or no lines contain the string
     }
+    
     
 
 
@@ -330,7 +372,7 @@ public class GameRoom extends Room {
 
     // start handle next turn
     private void nextTurn() {
-        updatePhase(Phase.TURN);
+        updatePhase(Phase.PREPARING);
     }
 
 
