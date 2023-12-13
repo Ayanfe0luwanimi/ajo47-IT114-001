@@ -325,7 +325,6 @@ public class GameRoom extends Room {
         
         updatePhase(Phase.SELECTION);
         start();
-        
     }
 
     public static void getquestions(ServerThread threadd){

@@ -55,6 +55,7 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
     JLabel timeLabel = new JLabel("");
     TimedEvent currentTimer;
     String Status;
+    
 
     public GamePanel(ICardControls controls) {
         super(new CardLayout());
@@ -78,6 +79,7 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         createOptionsPanel();
         createGameView();
         setVisible(false);
+
         // don't need to add this to ClientUI as this isn't a primary panel(it's nested
         // in ChatGamePanel)
         // controls.addPanel(Card.GAME_SCREEN.name(), this);
@@ -134,6 +136,18 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         
     }
 
+    private void startTimer() {
+        if (currentTimer == null) { // Check if the timer is already running
+            currentTimer = new TimedEvent(100, () -> {
+                currentTimer = null;
+            });
+            currentTimer.setTickCallback((time) -> {
+                timeLabel.setText("Remaining game time: " + time);
+            });
+        }
+    }
+    
+
     private void createOptionsPanel() {
         JPanel characterOptions = new JPanel(new FlowLayout(FlowLayout.CENTER));
         characterOptions.setLayout(new GridLayout(0, 2,20,20)); // Set the layout to a single column
@@ -142,14 +156,14 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         timeLabel=new JLabel();
         characterOptions.add(timeLabel);
 
-    
-        currentTimer = new TimedEvent(30, () -> {
+    /*
+        currentTimer = new TimedEvent(100, () -> {
             currentTimer = null;
         });
         currentTimer.setTickCallback((time) -> {
             timeLabel.setText("Remaining: " + time);
         });
-    
+    */
 
         JLabel blank4=new JLabel();
 
@@ -352,11 +366,25 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
     public void onRoomJoin(String roomName) {
     }
 
+    private void stopTimer() {
+        if (currentTimer != null) {
+            currentTimer.stop(); // Assuming TimedEvent has a stop() method to halt the timer
+            currentTimer = null; // Set the timer instance to null after stopping
+        }
+    }
+
     @Override
     public void onReceivePhase(Phase phase) {
         // I'll temporarily do next(), but there may be scenarios where the screen can
         // be inaccurate
         System.out.println("Received phase: " + phase.name());
+        try {
+            Client.INSTANCE.getRandomQuestionAndAnswer();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         if (phase == Phase.READY) {
             if (!isVisible()) {
                 setVisible(true);
@@ -365,6 +393,7 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
                 System.out.println("GamePanel visible");
             } else {
                 cardLayout.next(this);
+                
             }
         } else if (phase == Phase.SELECTION) {
             cardLayout.next(this);
@@ -374,12 +403,15 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
     }
 
     private void updateUIComponents() {
+        stopTimer();
+        startTimer(); 
         categoryField.setText(newcategory);
         questionField.setText(newquestionText);
         answerOptionsField1.setText(newansweroptions.get(0));
         answerOptionsField2.setText(newansweroptions.get(1));
         answerOptionsField3.setText(newansweroptions.get(2));
         textField.setText(newquestion);
+        
     }
 
 
