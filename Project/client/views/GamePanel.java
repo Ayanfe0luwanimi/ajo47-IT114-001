@@ -167,6 +167,12 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         JLabel blank=new JLabel();
         answerOptionsField1.addActionListener(l -> {
             if(Status=="Spectator"){
+                try {
+                    Client.INSTANCE.submitANswer(" a,b");
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
             }
             else{
@@ -182,6 +188,12 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
 
         answerOptionsField2.addActionListener(l -> {
             if(Status=="Spectator"){
+                try {
+                    Client.INSTANCE.submitANswer(" a,b");
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
             }
             else{
@@ -195,6 +207,13 @@ public class GamePanel extends JPanel implements IGameEvents, IGameControls {
         });
         answerOptionsField3.addActionListener(l -> {
             if(Status=="Spectator"){
+
+                try {
+                    Client.INSTANCE.submitANswer("a,b");
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 JOptionPane.showMessageDialog(this, "You cannot make a submission since you are a spectator", "Invalid", JOptionPane.WARNING_MESSAGE);
             }
             else{

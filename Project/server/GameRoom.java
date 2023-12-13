@@ -310,8 +310,8 @@ public class GameRoom extends Room {
         sendMessage(
             null,
                 "Session started: Please click the right answer to submit");
-        new TimedEvent(30, () -> optionspanel());
-        scoreTimerInstance = new ScoreTimer(30);
+        new TimedEvent(100, () -> optionspanel());
+        scoreTimerInstance = new ScoreTimer(100);
     }
 
     private void optionspanel() {
@@ -325,6 +325,7 @@ public class GameRoom extends Room {
         
         updatePhase(Phase.SELECTION);
         start();
+        
     }
 
     public static void getquestions(ServerThread threadd){
